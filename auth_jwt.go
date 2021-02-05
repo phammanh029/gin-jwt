@@ -59,7 +59,7 @@ type GinJWTMiddleware struct {
 	// Optional, by default no additional data will be set.
 	PayloadFunc func(data interface{}) MapClaims
 
-	CustomFunc func(*gin.Context) bool
+	TokenValidFunc func(*gin.Context) bool
 
 	// User can define own Unauthorized func.
 	Unauthorized func(*gin.Context, int, string)
@@ -356,8 +356,8 @@ func (mw *GinJWTMiddleware) MiddlewareInit() error {
 			return claims[mw.IdentityKey]
 		}
 	}
-	if mw.CustomFunc == nil {
-		mw.CustomFunc = func(c *gin.Context) bool {
+	if mw.TokenValidFunc == nil {
+		mw.TokenValidFunc = func(c *gin.Context) bool {
 			return true
 		}
 	}
@@ -426,7 +426,8 @@ func (mw *GinJWTMiddleware) middlewareImpl(c *gin.Context) {
 		c.Set(mw.IdentityKey, identity)
 	}
 
-	if !mw.CustomFunc(c) {
+	if !mw.TokenValidFunc(c) {
+		mw.unauthorized(c, http.StatusUnauthorized, mw.HTTPStatusMessageFunc(ErrExpiredToken, c))
 		return
 	}
 
